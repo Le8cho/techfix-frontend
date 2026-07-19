@@ -3,11 +3,7 @@ import { format } from 'date-fns'
 import { getRouteApi } from '@tanstack/react-router'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  useArchivarTicketMutation,
-  useConfirmarEntregaMutation,
-  useTicketQuery,
-} from '@/api/tickets'
+import { useConfirmarEntregaMutation, useTicketQuery } from '@/api/tickets'
 import { handleServerError } from '@/lib/handle-server-error'
 import { estadoTicketBadgeClass, estadoTicketLabels } from '@/lib/ticket-estado'
 import { cn } from '@/lib/utils'
@@ -21,13 +17,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { DispositivoFoto } from '@/components/dispositivo-foto'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { AdjuntosSection } from '@/features/ticket-adjuntos'
 import { AceptarDialog } from './components/aceptar-dialog'
-import { GarantiaDialog } from './components/garantia-dialog'
 import { RechazarDialog } from './components/rechazar-dialog'
 
 const route = getRouteApi('/_authenticated/tecnico/tickets/$ticketId')
@@ -39,12 +35,9 @@ export function TicketDetalleTecnico() {
 
   const [aceptarOpen, setAceptarOpen] = useState(false)
   const [rechazarOpen, setRechazarOpen] = useState(false)
-  const [garantiaOpen, setGarantiaOpen] = useState(false)
   const [entregaOpen, setEntregaOpen] = useState(false)
-  const [archivarOpen, setArchivarOpen] = useState(false)
 
   const confirmarEntrega = useConfirmarEntregaMutation()
-  const archivar = useArchivarTicketMutation()
 
   const handleConfirmarEntrega = () => {
     confirmarEntrega
@@ -52,16 +45,6 @@ export function TicketDetalleTecnico() {
       .then(() => {
         toast.success('Entrega confirmada.')
         setEntregaOpen(false)
-      })
-      .catch(handleServerError)
-  }
-
-  const handleArchivar = () => {
-    archivar
-      .mutateAsync(ticketId)
-      .then(() => {
-        toast.success('Ticket archivado.')
-        setArchivarOpen(false)
       })
       .catch(handleServerError)
   }
@@ -116,7 +99,12 @@ export function TicketDetalleTecnico() {
                   {format(new Date(ticket.creado_en), 'dd/MM/yyyy HH:mm')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className='grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
+              <CardContent className='grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2'>
+                <DispositivoFoto
+                  dispositivoId={ticket.dispositivo_id}
+                  tieneFoto={!!ticket.dispositivo_foto_url}
+                  className='col-span-full h-40 w-40'
+                />
                 <div>
                   <span className='text-muted-foreground'>Descripción: </span>
                   {ticket.descripcion ?? '—'}
@@ -141,6 +129,26 @@ export function TicketDetalleTecnico() {
                   </span>
                   {ticket.confirmado_cliente ? 'Sí' : 'No'}
                 </div>
+                {ticket.estado === 'FINALIZADO' && ticket.fecha_finalizacion && (
+                  <div>
+                    <span className='text-muted-foreground'>
+                      Fecha de entrega:{' '}
+                    </span>
+                    {format(new Date(ticket.fecha_finalizacion), 'dd/MM/yyyy')}
+                  </div>
+                )}
+                {ticket.estado === 'FINALIZADO' &&
+                  ticket.garantia_fecha_vencimiento && (
+                    <div>
+                      <span className='text-muted-foreground'>
+                        Garantía hasta:{' '}
+                      </span>
+                      {format(
+                        new Date(ticket.garantia_fecha_vencimiento),
+                        'dd/MM/yyyy'
+                      )}
+                    </div>
+                  )}
               </CardContent>
             </Card>
 
@@ -162,28 +170,19 @@ export function TicketDetalleTecnico() {
                     Confirmar entrega
                   </Button>
                 )}
-              {ticket.estado === 'FINALIZADO' && (
-                <>
-                  <Button onClick={() => setGarantiaOpen(true)}>
-                    Registrar garantía
-                  </Button>
-                  <Button
-                    variant='outline'
-                    onClick={() => setArchivarOpen(true)}
-                  >
-                    Archivar
-                  </Button>
-                </>
-              )}
             </div>
 
             <AdjuntosSection
               ticketId={ticketId}
-              puedeSubir={ticket.estado === 'EN_PROGRESO'}
+              puedeSubir={
+                ticket.estado === 'EN_REVISION' ||
+                ticket.estado === 'EN_PROGRESO'
+              }
             />
 
             <AceptarDialog
               ticketId={ticketId}
+              precioBase={ticket.precio_base}
               open={aceptarOpen}
               onOpenChange={setAceptarOpen}
             />
@@ -191,11 +190,6 @@ export function TicketDetalleTecnico() {
               ticketId={ticketId}
               open={rechazarOpen}
               onOpenChange={setRechazarOpen}
-            />
-            <GarantiaDialog
-              ticketId={ticketId}
-              open={garantiaOpen}
-              onOpenChange={setGarantiaOpen}
             />
             <ConfirmDialog
               open={entregaOpen}
@@ -205,15 +199,6 @@ export function TicketDetalleTecnico() {
               confirmText='Confirmar entrega'
               isLoading={confirmarEntrega.isPending}
               handleConfirm={handleConfirmarEntrega}
-            />
-            <ConfirmDialog
-              open={archivarOpen}
-              onOpenChange={setArchivarOpen}
-              title='Archivar ticket'
-              desc='El ticket pasa a estado Archivado de forma permanente.'
-              confirmText='Archivar'
-              isLoading={archivar.isPending}
-              handleConfirm={handleArchivar}
             />
           </>
         )}

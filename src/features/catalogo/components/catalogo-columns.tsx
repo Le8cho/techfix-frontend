@@ -16,6 +16,7 @@ const tipoServicioLabels: Record<Servicio['tipo_servicio'], string> = {
   PREVENTIVO: 'Preventivo',
   CORRECTIVO: 'Correctivo',
   SUSCRIPCION_SOFTWARE: 'Suscripción software',
+  OTROS: 'Otros',
 }
 
 type ColumnsActions = {

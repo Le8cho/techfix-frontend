@@ -13,6 +13,7 @@ export interface TicketResponse {
   dispositivo_id: string | null
   dispositivo_marca: string | null
   dispositivo_modelo: string | null
+  dispositivo_foto_url: string | null
   estado: EstadoTicket
   descripcion: string | null
   precio_base: string | null // Decimal serializado como string
@@ -23,6 +24,9 @@ export interface TicketResponse {
   fecha_finalizacion: string | null
   creado_en: string
   actualizado_en: string | null
+  garantia_fecha_inicio: string | null
+  garantia_fecha_vencimiento: string | null
+  garantia_usada: boolean | null
 }
 
 export interface TicketListItem {
@@ -33,6 +37,7 @@ export interface TicketListItem {
   dispositivo_id: string | null
   dispositivo_marca: string | null
   dispositivo_modelo: string | null
+  dispositivo_foto_url: string | null
   precio_base: string | null
   precio_final: string | null
   creado_en: string
@@ -53,21 +58,6 @@ export interface TicketesFiltros {
   garantia_vencida?: boolean // técnico/admin únicamente
 }
 
-export interface ArchivarResult {
-  ticket_id: string
-  cliente_email: string
-  cliente_nombre: string
-}
-
-export interface GarantiaCreate {
-  fecha_inicio: string
-  fecha_vencimiento: string
-}
-
-export interface GarantiaResult extends ArchivarResult {
-  fecha_vencimiento: string
-}
-
 const listarTickets = (filtros: TicketesFiltros = {}) =>
   unwrap<TicketListItem[]>(
     httpClient.get('/api/v1/tickets', { params: filtros })
@@ -84,9 +74,12 @@ const confirmarRecepcion = (ticketId: string) =>
     httpClient.patch(`/api/v1/tickets/${ticketId}/confirmar-recepcion`)
   )
 
-const reabrirTicket = (ticketId: string) =>
+const reabrirTicket = (ticketId: string, descripcion?: string) =>
   unwrap<TicketResponse>(
-    httpClient.patch(`/api/v1/tickets/${ticketId}/reabrir`)
+    httpClient.patch(
+      `/api/v1/tickets/${ticketId}/reabrir`,
+      descripcion ? { descripcion } : undefined
+    )
   )
 
 const aceptarTicket = (ticketId: string, precioFinal: number) =>
@@ -106,16 +99,6 @@ const rechazarTicket = (ticketId: string, motivoRechazo: string) =>
 const confirmarEntrega = (ticketId: string) =>
   unwrap<TicketResponse>(
     httpClient.patch(`/api/v1/tickets/${ticketId}/confirmar-entrega`)
-  )
-
-const archivarTicket = (ticketId: string) =>
-  unwrap<ArchivarResult>(
-    httpClient.patch(`/api/v1/tickets/${ticketId}/archivar`)
-  )
-
-const registrarGarantia = (ticketId: string, body: GarantiaCreate) =>
-  unwrap<GarantiaResult>(
-    httpClient.post(`/api/v1/tickets/${ticketId}/garantia`, body)
   )
 
 export function useTicketsQuery(filtros: TicketesFiltros = {}) {
@@ -152,7 +135,10 @@ export function useConfirmarRecepcionMutation() {
 }
 
 export function useReabrirTicketMutation() {
-  return useTicketMutation(reabrirTicket)
+  return useTicketMutation(
+    ({ ticketId, descripcion }: { ticketId: string; descripcion?: string }) =>
+      reabrirTicket(ticketId, descripcion)
+  )
 }
 
 export function useAceptarTicketMutation() {
@@ -178,13 +164,3 @@ export function useConfirmarEntregaMutation() {
   return useTicketMutation(confirmarEntrega)
 }
 
-export function useArchivarTicketMutation() {
-  return useTicketMutation(archivarTicket)
-}
-
-export function useRegistrarGarantiaMutation() {
-  return useTicketMutation(
-    ({ ticketId, body }: { ticketId: string; body: GarantiaCreate }) =>
-      registrarGarantia(ticketId, body)
-  )
-}

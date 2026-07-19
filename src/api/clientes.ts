@@ -37,6 +37,9 @@ export interface TicketResumen {
   precio_base: number | null
   precio_final: number | null
   creado_en: string
+  fecha_finalizacion: string | null
+  garantia_fecha_inicio: string | null
+  garantia_fecha_vencimiento: string | null
 }
 
 export interface DispositivoConTickets {
@@ -79,6 +82,9 @@ export const listarClientes = (filtros: ClientesFiltros = {}) =>
 export const obtenerClienteProfile = (clienteId: string) =>
   unwrap<ClienteProfile>(httpClient.get(`/api/v1/clientes/${clienteId}`))
 
+export const obtenerMiPerfil = () =>
+  unwrap<ClienteProfile>(httpClient.get('/api/v1/clientes/me/perfil'))
+
 export function useRegistrarClienteMutation() {
   return useMutation({ mutationFn: registrarCliente })
 }
@@ -95,5 +101,12 @@ export function useClienteProfileQuery(clienteId: string) {
     queryKey: ['clientes', clienteId],
     queryFn: () => obtenerClienteProfile(clienteId),
     enabled: !!clienteId,
+  })
+}
+
+export function useMiPerfilQuery() {
+  return useQuery({
+    queryKey: ['clientes', 'me', 'perfil'],
+    queryFn: obtenerMiPerfil,
   })
 }

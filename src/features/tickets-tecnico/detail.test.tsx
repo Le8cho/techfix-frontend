@@ -23,7 +23,6 @@ vi.mock('@/api/tickets', async (importOriginal) => {
     ...actual,
     useTicketQuery: () => ticketQueryMock(),
     useConfirmarEntregaMutation: inertMutation,
-    useArchivarTicketMutation: inertMutation,
   }
 })
 
@@ -56,6 +55,7 @@ function makeTicket(overrides: Partial<TicketResponse>): TicketResponse {
     dispositivo_id: 'disp-1',
     dispositivo_marca: 'HP',
     dispositivo_modelo: 'X1',
+    dispositivo_foto_url: null,
     estado: 'EN_REVISION',
     descripcion: null,
     precio_base: '45.00',
@@ -66,6 +66,9 @@ function makeTicket(overrides: Partial<TicketResponse>): TicketResponse {
     fecha_finalizacion: null,
     creado_en: '2026-01-01T00:00:00Z',
     actualizado_en: null,
+    garantia_fecha_inicio: null,
+    garantia_fecha_vencimiento: null,
+    garantia_usada: null,
     ...overrides,
   }
 }
@@ -136,17 +139,22 @@ describe('TicketDetalleTecnico — acciones visibles según estado', () => {
       .not.toBeInTheDocument()
   })
 
-  it('FINALIZADO: muestra Registrar garantía y Archivar', async () => {
-    const screen = await renderConTicket({ estado: 'FINALIZADO' })
+  it('FINALIZADO: no muestra acciones manuales de garantía/archivar (son automáticas)', async () => {
+    const screen = await renderConTicket({
+      estado: 'FINALIZADO',
+      fecha_finalizacion: '2026-01-10T00:00:00Z',
+      garantia_fecha_vencimiento: '2026-01-24T00:00:00Z',
+    })
 
     await expect
       .element(screen.getByRole('button', { name: 'Registrar garantía' }))
-      .toBeVisible()
+      .not.toBeInTheDocument()
     await expect
       .element(screen.getByRole('button', { name: 'Archivar' }))
-      .toBeVisible()
+      .not.toBeInTheDocument()
     await expect
       .element(screen.getByRole('button', { name: 'Aceptar' }))
       .not.toBeInTheDocument()
+    await expect.element(screen.getByText(/Garantía hasta/)).toBeVisible()
   })
 })

@@ -5,11 +5,7 @@ import { Wallet } from '@mercadopago/sdk-react'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCrearPreferenciaMutation } from '@/api/payments'
-import {
-  useConfirmarRecepcionMutation,
-  useReabrirTicketMutation,
-  useTicketQuery,
-} from '@/api/tickets'
+import { useConfirmarRecepcionMutation, useTicketQuery } from '@/api/tickets'
 import { handleServerError } from '@/lib/handle-server-error'
 import { estadoTicketBadgeClass, estadoTicketLabels } from '@/lib/ticket-estado'
 import { cn } from '@/lib/utils'
@@ -23,11 +19,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { DispositivoFoto } from '@/components/dispositivo-foto'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { AdjuntosSection } from '@/features/ticket-adjuntos'
+import { ReportarIncidenteDialog } from './components/reportar-incidente-dialog'
 
 const route = getRouteApi('/_authenticated/cliente/tickets/$ticketId')
 
@@ -37,11 +35,10 @@ export function TicketDetalleCliente() {
   const { data: ticket, isLoading, isError } = useTicketQuery(ticketId)
 
   const [recepcionOpen, setRecepcionOpen] = useState(false)
-  const [reabrirOpen, setReabrirOpen] = useState(false)
+  const [reportarIncidenteOpen, setReportarIncidenteOpen] = useState(false)
   const [preferenceId, setPreferenceId] = useState<string | null>(null)
 
   const confirmarRecepcion = useConfirmarRecepcionMutation()
-  const reabrir = useReabrirTicketMutation()
   const crearPreferencia = useCrearPreferenciaMutation()
 
   const handlePagar = () => {
@@ -57,16 +54,6 @@ export function TicketDetalleCliente() {
       .then(() => {
         toast.success('Recepción confirmada. ¡Gracias por confiar en TechFix!')
         setRecepcionOpen(false)
-      })
-      .catch(handleServerError)
-  }
-
-  const handleReabrir = () => {
-    reabrir
-      .mutateAsync(ticketId)
-      .then(() => {
-        toast.success('Ticket reabierto por garantía.')
-        setReabrirOpen(false)
       })
       .catch(handleServerError)
   }
@@ -121,7 +108,12 @@ export function TicketDetalleCliente() {
                   {format(new Date(ticket.creado_en), 'dd/MM/yyyy HH:mm')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className='grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
+              <CardContent className='grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2'>
+                <DispositivoFoto
+                  dispositivoId={ticket.dispositivo_id}
+                  tieneFoto={!!ticket.dispositivo_foto_url}
+                  className='col-span-full h-40 w-40'
+                />
                 <div>
                   <span className='text-muted-foreground'>Descripción: </span>
                   {ticket.descripcion ?? '—'}
@@ -130,6 +122,19 @@ export function TicketDetalleCliente() {
                   <span className='text-muted-foreground'>Precio final: </span>
                   {ticket.precio_final ? `S/ ${ticket.precio_final}` : '—'}
                 </div>
+                {ticket.estado === 'FINALIZADO' &&
+                  ticket.garantia_fecha_vencimiento && (
+                    <div>
+                      <span className='text-muted-foreground'>
+                        Garantía hasta:{' '}
+                      </span>
+                      {format(
+                        new Date(ticket.garantia_fecha_vencimiento),
+                        'dd/MM/yyyy'
+                      )}
+                      {ticket.garantia_usada && ' (ya utilizada)'}
+                    </div>
+                  )}
               </CardContent>
             </Card>
 
@@ -152,11 +157,16 @@ export function TicketDetalleCliente() {
                     Confirmar recepción
                   </Button>
                 )}
-              {ticket.estado === 'FINALIZADO' && (
-                <Button variant='outline' onClick={() => setReabrirOpen(true)}>
-                  Reportar incidente (garantía)
-                </Button>
-              )}
+              {ticket.estado === 'FINALIZADO' &&
+                ticket.garantia_fecha_vencimiento &&
+                !ticket.garantia_usada && (
+                  <Button
+                    variant='outline'
+                    onClick={() => setReportarIncidenteOpen(true)}
+                  >
+                    Reportar incidente (garantía)
+                  </Button>
+                )}
             </div>
 
             {preferenceId && (
@@ -164,18 +174,24 @@ export function TicketDetalleCliente() {
                 <CardHeader>
                   <CardTitle className='text-base'>Completar el pago</CardTitle>
                   <CardDescription>
-                    Elegí tu método de pago para continuar.
+                    Elegí tu método de pago para continuar. Se abrirá en una
+                    pestaña nueva.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Wallet initialization={{ preferenceId }} />
+                  <Wallet
+                    initialization={{ preferenceId, redirectMode: 'blank' }}
+                  />
                 </CardContent>
               </Card>
             )}
 
             <AdjuntosSection
               ticketId={ticketId}
-              puedeSubir={ticket.estado === 'EN_PROGRESO'}
+              puedeSubir={
+                ticket.estado === 'EN_REVISION' ||
+                ticket.estado === 'EN_PROGRESO'
+              }
             />
 
             <ConfirmDialog
@@ -187,14 +203,10 @@ export function TicketDetalleCliente() {
               isLoading={confirmarRecepcion.isPending}
               handleConfirm={handleConfirmarRecepcion}
             />
-            <ConfirmDialog
-              open={reabrirOpen}
-              onOpenChange={setReabrirOpen}
-              title='Reportar incidente por garantía'
-              desc='Esto reabre el ticket para que el técnico revise el mismo problema nuevamente, siempre que la garantía siga vigente.'
-              confirmText='Reportar incidente'
-              isLoading={reabrir.isPending}
-              handleConfirm={handleReabrir}
+            <ReportarIncidenteDialog
+              ticketId={ticketId}
+              open={reportarIncidenteOpen}
+              onOpenChange={setReportarIncidenteOpen}
             />
           </>
         )}

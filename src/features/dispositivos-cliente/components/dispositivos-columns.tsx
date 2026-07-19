@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DataTableColumnHeader } from '@/components/data-table'
+import { DispositivoFoto } from '@/components/dispositivo-foto'
 import { LongText } from '@/components/long-text'
 
 type ColumnsActions = {
@@ -23,6 +24,19 @@ export function getDispositivosColumns({
   onDelete,
 }: ColumnsActions): ColumnDef<Dispositivo>[] {
   return [
+    {
+      id: 'foto',
+      header: '',
+      cell: ({ row }) => (
+        <DispositivoFoto
+          dispositivoId={row.original.dispositivo_id}
+          tieneFoto={!!row.original.foto_url}
+          className='h-10 w-10'
+        />
+      ),
+      meta: { className: 'ps-3' },
+      enableHiding: false,
+    },
     {
       id: 'marcaModelo',
       header: ({ column }) => (

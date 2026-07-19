@@ -39,11 +39,17 @@ const tipoServicioOptions: { value: TipoServicio; label: string }[] = [
   { value: 'PREVENTIVO', label: 'Preventivo' },
   { value: 'CORRECTIVO', label: 'Correctivo' },
   { value: 'SUSCRIPCION_SOFTWARE', label: 'Suscripción software' },
+  { value: 'OTROS', label: 'Otros' },
 ]
 
 const formSchema = z.object({
   nombre: z.string().min(1, 'El nombre es obligatorio.').max(120),
-  tipo_servicio: z.enum(['PREVENTIVO', 'CORRECTIVO', 'SUSCRIPCION_SOFTWARE']),
+  tipo_servicio: z.enum([
+    'PREVENTIVO',
+    'CORRECTIVO',
+    'SUSCRIPCION_SOFTWARE',
+    'OTROS',
+  ]),
   precio_base: z.number().positive('El precio debe ser mayor a 0.'),
 })
 type ServicioForm = z.infer<typeof formSchema>

@@ -1,9 +1,10 @@
+import { useMemo } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { useServiciosQuery } from '@/api/catalogo'
+import { type Servicio, useServiciosQuery } from '@/api/catalogo'
 import { useDispositivosQuery } from '@/api/dispositivos'
 import { useCrearTicketMutation } from '@/api/tickets'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -33,12 +34,31 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
-const formSchema = z.object({
-  dispositivo_id: z.string().min(1, 'Selecciona un dispositivo.'),
-  servicio_id: z.string().min(1, 'Selecciona un servicio.'),
-  descripcion: z.string().max(1000).optional(),
-})
-type CrearTicketForm = z.infer<typeof formSchema>
+function buildFormSchema(servicios: Servicio[]) {
+  return z
+    .object({
+      dispositivo_id: z.string().min(1, 'Selecciona un dispositivo.'),
+      servicio_id: z.string().min(1, 'Selecciona un servicio.'),
+      descripcion: z.string().max(1000).optional(),
+    })
+    .superRefine((data, ctx) => {
+      const servicio = servicios.find(
+        (s) => s.servicio_id === data.servicio_id
+      )
+      if (
+        servicio?.tipo_servicio === 'OTROS' &&
+        !data.descripcion?.trim()
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['descripcion'],
+          message:
+            'Describe el problema para que el técnico pueda definir el precio.',
+        })
+      }
+    })
+}
+type CrearTicketForm = z.infer<ReturnType<typeof buildFormSchema>>
 
 type CrearTicketDialogProps = {
   open: boolean
@@ -54,10 +74,18 @@ export function CrearTicketDialog({
   const { data: servicios } = useServiciosQuery()
   const crear = useCrearTicketMutation()
 
+  const formSchema = useMemo(
+    () => buildFormSchema(servicios ?? []),
+    [servicios]
+  )
   const form = useForm<CrearTicketForm>({
     resolver: zodResolver(formSchema),
     defaultValues: { dispositivo_id: '', servicio_id: '', descripcion: '' },
   })
+  const servicioSeleccionado = servicios?.find(
+    (s) => s.servicio_id === form.watch('servicio_id')
+  )
+  const esOtros = servicioSeleccionado?.tipo_servicio === 'OTROS'
 
   const onSubmit = (values: CrearTicketForm) => {
     crear
@@ -159,11 +187,17 @@ export function CrearTicketDialog({
                 name='descripcion'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Descripción (opcional)</FormLabel>
+                    <FormLabel>
+                      Descripción {esOtros ? '' : '(opcional)'}
+                    </FormLabel>
                     <FormControl>
                       <Textarea
                         rows={3}
-                        placeholder='Contanos qué le pasa a tu equipo…'
+                        placeholder={
+                          esOtros
+                            ? 'Describe el problema para que el técnico defina el precio…'
+                            : 'Contanos qué le pasa a tu equipo…'
+                        }
                         {...field}
                       />
                     </FormControl>

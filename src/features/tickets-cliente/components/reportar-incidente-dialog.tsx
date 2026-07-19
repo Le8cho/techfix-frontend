@@ -1,9 +1,8 @@
-import { useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { useAceptarTicketMutation } from '@/api/tickets'
+import { useReabrirTicketMutation } from '@/api/tickets'
 import { handleServerError } from '@/lib/handle-server-error'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,44 +21,40 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 const formSchema = z.object({
-  precioFinal: z.number().positive('El precio debe ser mayor a 0.'),
+  descripcion: z
+    .string()
+    .min(10, 'Describe el problema con al menos 10 caracteres.')
+    .max(1000),
 })
-type AceptarForm = z.infer<typeof formSchema>
+type ReportarIncidenteForm = z.infer<typeof formSchema>
 
-type AceptarDialogProps = {
+type ReportarIncidenteDialogProps = {
   ticketId: string
-  precioBase: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function AceptarDialog({
+export function ReportarIncidenteDialog({
   ticketId,
-  precioBase,
   open,
   onOpenChange,
-}: AceptarDialogProps) {
-  const aceptar = useAceptarTicketMutation()
-  const form = useForm<AceptarForm>({
+}: ReportarIncidenteDialogProps) {
+  const reabrir = useReabrirTicketMutation()
+  const form = useForm<ReportarIncidenteForm>({
     resolver: zodResolver(formSchema),
-    defaultValues: { precioFinal: precioBase ? Number(precioBase) : 0 },
+    defaultValues: { descripcion: '' },
   })
 
-  useEffect(() => {
-    if (open) {
-      form.reset({ precioFinal: precioBase ? Number(precioBase) : 0 })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, precioBase])
-
-  const onSubmit = (values: AceptarForm) => {
-    aceptar
-      .mutateAsync({ ticketId, precioFinal: values.precioFinal })
+  const onSubmit = (values: ReportarIncidenteForm) => {
+    reabrir
+      .mutateAsync({ ticketId, descripcion: values.descripcion })
       .then(() => {
-        toast.success('Ticket aceptado.')
+        toast.success(
+          'Ticket reabierto por garantía. Ya puedes adjuntar imágenes del problema.'
+        )
         form.reset()
         onOpenChange(false)
       })
@@ -76,32 +71,27 @@ export function AceptarDialog({
     >
       <DialogContent className='sm:max-w-md'>
         <DialogHeader className='text-start'>
-          <DialogTitle>Aceptar ticket</DialogTitle>
+          <DialogTitle>Reportar incidente por garantía</DialogTitle>
           <DialogDescription>
-            Define el precio final del servicio. El ticket pasará a estado
-            "Espera de pago".
+            Cuéntanos qué problema presenta el equipo. El ticket se reabrirá
+            para que el técnico lo revise nuevamente; luego podrás adjuntar
+            fotos del problema.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
-            id='aceptar-form'
+            id='reportar-incidente-form'
             onSubmit={form.handleSubmit(onSubmit)}
             className='space-y-4'
           >
             <FormField
               control={form.control}
-              name='precioFinal'
+              name='descripcion'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Precio final (S/)</FormLabel>
+                  <FormLabel>Descripción del problema</FormLabel>
                   <FormControl>
-                    <Input
-                      type='number'
-                      step='0.01'
-                      min='0'
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                    />
+                    <Textarea rows={4} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,10 +102,10 @@ export function AceptarDialog({
         <DialogFooter>
           <Button
             type='submit'
-            form='aceptar-form'
-            disabled={aceptar.isPending}
+            form='reportar-incidente-form'
+            disabled={reabrir.isPending}
           >
-            Aceptar ticket
+            Reportar incidente
           </Button>
         </DialogFooter>
       </DialogContent>

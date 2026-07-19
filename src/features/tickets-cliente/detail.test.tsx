@@ -27,6 +27,10 @@ vi.mock('@/api/tickets', async (importOriginal) => {
   }
 })
 
+vi.mock('./components/reportar-incidente-dialog', () => ({
+  ReportarIncidenteDialog: () => null,
+}))
+
 vi.mock('@/api/payments', () => ({
   useCrearPreferenciaMutation: inertMutation,
 }))
@@ -64,6 +68,7 @@ function makeTicket(overrides: Partial<TicketResponse>): TicketResponse {
     dispositivo_id: 'disp-1',
     dispositivo_marca: 'HP',
     dispositivo_modelo: 'X1',
+    dispositivo_foto_url: null,
     estado: 'EN_REVISION',
     descripcion: null,
     precio_base: '45.00',
@@ -74,6 +79,9 @@ function makeTicket(overrides: Partial<TicketResponse>): TicketResponse {
     fecha_finalizacion: null,
     creado_en: '2026-01-01T00:00:00Z',
     actualizado_en: null,
+    garantia_fecha_inicio: null,
+    garantia_fecha_vencimiento: null,
+    garantia_usada: null,
     ...overrides,
   }
 }
@@ -149,14 +157,32 @@ describe('TicketDetalleCliente — acciones visibles según estado', () => {
       .not.toBeInTheDocument()
   })
 
-  it('FINALIZADO: muestra Reportar incidente (garantía)', async () => {
-    const screen = await renderConTicket({ estado: 'FINALIZADO' })
+  it('FINALIZADO con garantía vigente: muestra Reportar incidente (garantía)', async () => {
+    const screen = await renderConTicket({
+      estado: 'FINALIZADO',
+      garantia_fecha_vencimiento: '2026-02-01T00:00:00Z',
+      garantia_usada: false,
+    })
 
     await expect
       .element(
         screen.getByRole('button', { name: 'Reportar incidente (garantía)' })
       )
       .toBeVisible()
+  })
+
+  it('FINALIZADO con garantía ya usada: NO muestra Reportar incidente (garantía)', async () => {
+    const screen = await renderConTicket({
+      estado: 'FINALIZADO',
+      garantia_fecha_vencimiento: '2026-02-01T00:00:00Z',
+      garantia_usada: true,
+    })
+
+    await expect
+      .element(
+        screen.getByRole('button', { name: 'Reportar incidente (garantía)' })
+      )
+      .not.toBeInTheDocument()
   })
 
   it('RECHAZADO: no expone motivo_rechazo ni acciones (el cliente se entera por email)', async () => {
