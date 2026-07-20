@@ -32,6 +32,7 @@ type AceptarForm = z.infer<typeof formSchema>
 type AceptarDialogProps = {
   ticketId: string
   precioBase: string | null
+  servicioTipo: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -39,21 +40,26 @@ type AceptarDialogProps = {
 export function AceptarDialog({
   ticketId,
   precioBase,
+  servicioTipo,
   open,
   onOpenChange,
 }: AceptarDialogProps) {
   const aceptar = useAceptarTicketMutation()
+  // El servicio "Otros" no tiene un precio base real (el técnico lo define
+  // recién acá), así que no se precarga: se deja vacío con un placeholder.
+  const esOtros = servicioTipo === 'OTROS'
+  const defaultPrecio = !esOtros && precioBase ? Number(precioBase) : undefined
   const form = useForm<AceptarForm>({
     resolver: zodResolver(formSchema),
-    defaultValues: { precioFinal: precioBase ? Number(precioBase) : 0 },
+    defaultValues: { precioFinal: defaultPrecio },
   })
 
   useEffect(() => {
     if (open) {
-      form.reset({ precioFinal: precioBase ? Number(precioBase) : 0 })
+      form.reset({ precioFinal: defaultPrecio })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, precioBase])
+  }, [open, precioBase, servicioTipo])
 
   const onSubmit = (values: AceptarForm) => {
     aceptar
@@ -99,7 +105,9 @@ export function AceptarDialog({
                       type='number'
                       step='0.01'
                       min='0'
+                      placeholder={esOtros ? '20' : undefined}
                       {...field}
+                      value={field.value ?? ''}
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
                     />
                   </FormControl>

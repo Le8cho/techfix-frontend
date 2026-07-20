@@ -187,6 +187,7 @@ export function TicketDetalleTecnico() {
             <AceptarDialog
               ticketId={ticketId}
               precioBase={ticket.precio_base}
+              servicioTipo={ticket.servicio_tipo}
               open={aceptarOpen}
               onOpenChange={setAceptarOpen}
             />

@@ -169,7 +169,7 @@ export function TicketDetalleCliente() {
                 )}
             </div>
 
-            {preferenceId && (
+            {preferenceId && ticket.estado === 'EN_ESPERA_PAGO' && (
               <Card>
                 <CardHeader>
                   <CardTitle className='text-base'>Completar el pago</CardTitle>

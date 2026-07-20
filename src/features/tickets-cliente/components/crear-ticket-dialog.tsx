@@ -82,6 +82,14 @@ export function CrearTicketDialog({
   )
   const esOtros = servicioSeleccionado?.tipo_servicio === 'OTROS'
 
+  // "Otros" siempre al final: el resto mantiene el orden alfabético que ya
+  // devuelve el backend (sort es estable).
+  const serviciosOrdenados = [...(servicios ?? [])].sort((a, b) => {
+    if (a.tipo_servicio === 'OTROS') return 1
+    if (b.tipo_servicio === 'OTROS') return -1
+    return 0
+  })
+
   const onSubmit = (values: CrearTicketForm) => {
     crear
       .mutateAsync(values)
@@ -166,9 +174,10 @@ export function CrearTicketDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {servicios?.map((s) => (
+                        {serviciosOrdenados.map((s) => (
                           <SelectItem key={s.servicio_id} value={s.servicio_id}>
-                            {s.nombre} — S/ {s.precio_base}
+                            {s.nombre}
+                            {s.tipo_servicio !== 'OTROS' && ` — S/ ${s.precio_base}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
