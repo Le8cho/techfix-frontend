@@ -129,14 +129,18 @@ export function TicketDetalleTecnico() {
                   </span>
                   {ticket.confirmado_cliente ? 'Sí' : 'No'}
                 </div>
-                {ticket.estado === 'FINALIZADO' && ticket.fecha_finalizacion && (
-                  <div>
-                    <span className='text-muted-foreground'>
-                      Fecha de entrega:{' '}
-                    </span>
-                    {format(new Date(ticket.fecha_finalizacion), 'dd/MM/yyyy')}
-                  </div>
-                )}
+                {ticket.estado === 'FINALIZADO' &&
+                  ticket.fecha_finalizacion && (
+                    <div>
+                      <span className='text-muted-foreground'>
+                        Fecha de entrega:{' '}
+                      </span>
+                      {format(
+                        new Date(ticket.fecha_finalizacion),
+                        'dd/MM/yyyy'
+                      )}
+                    </div>
+                  )}
                 {ticket.estado === 'FINALIZADO' &&
                   ticket.garantia_fecha_vencimiento && (
                     <div>

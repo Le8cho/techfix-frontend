@@ -2,10 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { httpClient, unwrap } from './http-client'
 
 export type TipoServicio =
-  | 'PREVENTIVO'
-  | 'CORRECTIVO'
-  | 'SUSCRIPCION_SOFTWARE'
-  | 'OTROS'
+  'PREVENTIVO' | 'CORRECTIVO' | 'SUSCRIPCION_SOFTWARE' | 'OTROS'
 
 export interface Servicio {
   servicio_id: string

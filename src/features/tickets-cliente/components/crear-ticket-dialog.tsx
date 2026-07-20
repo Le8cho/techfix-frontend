@@ -42,13 +42,8 @@ function buildFormSchema(servicios: Servicio[]) {
       descripcion: z.string().max(1000).optional(),
     })
     .superRefine((data, ctx) => {
-      const servicio = servicios.find(
-        (s) => s.servicio_id === data.servicio_id
-      )
-      if (
-        servicio?.tipo_servicio === 'OTROS' &&
-        !data.descripcion?.trim()
-      ) {
+      const servicio = servicios.find((s) => s.servicio_id === data.servicio_id)
+      if (servicio?.tipo_servicio === 'OTROS' && !data.descripcion?.trim()) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['descripcion'],

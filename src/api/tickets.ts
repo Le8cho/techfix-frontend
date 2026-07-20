@@ -163,4 +163,3 @@ export function useRechazarTicketMutation() {
 export function useConfirmarEntregaMutation() {
   return useTicketMutation(confirmarEntrega)
 }
-

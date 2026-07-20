@@ -140,7 +140,7 @@ export function ClienteHome() {
                                 {ticket.servicio_nombre ?? '—'}
                               </td>
                               <td className='py-2 pe-4'>
-                                {ticket.precio_final ?? ticket.precio_base
+                                {(ticket.precio_final ?? ticket.precio_base)
                                   ? `S/ ${ticket.precio_final ?? ticket.precio_base}`
                                   : '—'}
                               </td>
