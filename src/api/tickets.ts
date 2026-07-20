@@ -1,3 +1,4 @@
+import type { Query } from '@tanstack/react-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { EstadoTicket } from './clientes'
 import { httpClient, unwrap } from './http-client'
@@ -9,6 +10,7 @@ export interface TicketResponse {
   cliente_id: string
   servicio_id: string
   servicio_nombre: string | null
+  servicio_tipo: string | null
   tecnico_id: string | null
   dispositivo_id: string | null
   dispositivo_marca: string | null
@@ -113,6 +115,11 @@ export function useTicketQuery(ticketId: string) {
     queryKey: ['tickets', ticketId],
     queryFn: () => obtenerTicket(ticketId),
     enabled: !!ticketId,
+    // La pasarela de pago se abre en otra pestaña: mientras el ticket espera
+    // el pago, se refresca solo cada 3s para reflejar la confirmación sin
+    // que el cliente tenga que recargar la página a mano.
+    refetchInterval: (query: Query<TicketResponse>) =>
+      query.state.data?.estado === 'EN_ESPERA_PAGO' ? 3000 : false,
   })
 }
 
